@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Mmh-Chalal/Jenkins-datascientest.git', branch: "${env.BRANCH_NAME}"
+                git url: 'https://github.com/Mmh-Chalal/Jenkins-datascientest.git', branch: 'dev'
             }
         }
 
