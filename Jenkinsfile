@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-id')  // à définir dans Jenkins
-        REGISTRY = "docker.io"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-id')
         DOCKER_USER = "${DOCKERHUB_CREDENTIALS_USR}"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -20,17 +19,17 @@ pipeline {
                 script {
                     def services = ['movie-service', 'cast-service']
                     for (service in services) {
-                        def imageName = "${DOCKER_USER}/${service}:${IMAGE_TAG}"
-                        sh "docker build -t ${imageName} ${service}"
-                        withDockerRegistry([credentialsId: 'dockerhub-id', url: ""]) {
-                            sh "docker push ${imageName}"
+                        def image = "${DOCKER_USER}/${service}:${IMAGE_TAG}"
+                        sh "docker build -t ${image} ${service}"
+                        withDockerRegistry([credentialsId: 'dockerhub-id', url: '']) {
+                            sh "docker push ${image}"
                         }
                     }
                 }
             }
         }
 
-        stage('Deploy to Namespace') {
+        stage('Deploy to Dev/QA/Staging') {
             when {
                 anyOf {
                     branch 'dev'
@@ -39,21 +38,19 @@ pipeline {
                 }
             }
             steps {
-                script {
-                    sh "kubectl apply -n ${env.BRANCH_NAME} -f k8s/${env.BRANCH_NAME}/"
-                }
+                sh "kubectl apply -n ${env.BRANCH_NAME} -f k8s/${env.BRANCH_NAME}/"
             }
         }
 
-        stage('Manual Deploy to Prod') {
+        stage('Deploy to Prod') {
             when {
                 branch 'master'
             }
             input {
-                message 'Confirmer le déploiement en production ?'
+                message "Déployer en production ?"
             }
             steps {
-                sh 'kubectl apply -n prod -f k8s/prod/'
+                sh "kubectl apply -n prod -f k8s/prod/"
             }
         }
     }
